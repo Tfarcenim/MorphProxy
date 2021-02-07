@@ -206,52 +206,11 @@ public class MorphProxyEventHandlerClient {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onRenderSpecials(RenderLivingEvent.Specials.Pre<?> event) {
-        if (allowSpecialRender) {
-            return;
-        }
-        for (Map.Entry<String, MorphInfoClient> e : morphsActive.entrySet()) {
-            if (e.getValue().nextState.getEntInstance(event.getEntity().getEntityWorld()) == event.getEntity() || e.getValue().prevState != null && e.getValue().prevState.getEntInstance(event.getEntity().getEntityWorld()) == event.getEntity()) {
-                if (e.getValue().prevState != null && e.getValue().prevState.getEntInstance(event.getEntity().getEntityWorld()) instanceof EntityPlayer && e.getValue().prevState.getEntInstance(event.getEntity().getEntityWorld()).getName().equals(e.getKey()) || e.getValue().nextState.getEntInstance(event.getEntity().getEntityWorld()) instanceof EntityPlayer && e.getValue().nextState.getEntInstance(event.getEntity().getEntityWorld()).getName().equals(e.getKey())) {
-                    //if the player is just morphing from/to itself don't render the label, we're doing that anyways.
-                    event.setCanceled(true); //render layer safe, layers aren't special renders.
-                }
-                AbstractClientPlayer player = (AbstractClientPlayer) event.getEntity().getEntityWorld().getPlayerEntityByName(e.getKey());
-                if (player == Minecraft.getMinecraft().player) {
-                    //If the entity is the mc player morph, no need to render the label at all, since, well, it's the player.
-                    event.setCanceled(true);
-                    return;
-                }
-
-                if (player != null && Morph.config.showPlayerLabel == 1)//if the player is in the world and Morph wants to show the player label.
-                {
-                    event.setCanceled(true); //Don't render the entity label, render the actual player's label instead.
-
-                    RenderPlayer rend = (RenderPlayer) (Render) Minecraft.getMinecraft().getRenderManager().getEntityRenderObject(player);
-                    allowSpecialRender = true;
-                    rend.renderName(player, event.getX(), event.getY(), event.getZ());
-                    allowSpecialRender = false;
-                }
-                return; //no need to continue the loop, we're done here.
-            }
-        }
-    }
-
     @SubscribeEvent
     public static void onWorldLoad(WorldEvent.Load event) {
         if (event.getWorld().isRemote && event.getWorld() instanceof WorldClient) {
             //Clean up the Morph States and stuff like that to prevent mem leaks.
             morphsActive.values().forEach(MorphInfoClient::clean);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onRenderBlockOverlay(RenderBlockOverlayEvent event) {
-        EntityPlayer player = Minecraft.getMinecraft().player;
-        MorphInfo info = morphsActive.get(player.getName());
-        if (info != null && info.nextState.getEntInstance(player.getEntityWorld()).width < 0.45F && player.isEntityInsideOpaqueBlock()) {
-            event.setCanceled(true);
         }
     }
 
