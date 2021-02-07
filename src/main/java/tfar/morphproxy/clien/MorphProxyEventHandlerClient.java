@@ -8,13 +8,11 @@ import me.ichun.mods.ichunutil.common.core.util.EntityHelper;
 import me.ichun.mods.ichunutil.common.core.util.ResourceHelper;
 import me.ichun.mods.morph.api.ability.Ability;
 import me.ichun.mods.morph.api.ability.type.AbilityPotionEffect;
-import me.ichun.mods.morph.api.ability.type.AbilitySwim;
 import me.ichun.mods.morph.client.model.ModelHandler;
 import me.ichun.mods.morph.client.morph.MorphInfoClient;
 import me.ichun.mods.morph.client.render.RenderPlayerHand;
 import me.ichun.mods.morph.common.Morph;
 import me.ichun.mods.morph.common.handler.AbilityHandler;
-import me.ichun.mods.morph.common.handler.PlayerMorphHandler;
 import me.ichun.mods.morph.common.morph.MorphInfo;
 import me.ichun.mods.morph.common.morph.MorphState;
 import me.ichun.mods.morph.common.packet.PacketGuiInput;
@@ -38,7 +36,6 @@ import net.minecraft.entity.boss.EntityDragon;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
@@ -52,7 +49,6 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -270,101 +266,6 @@ public class MorphProxyEventHandlerClient {
         if (info != null && info.nextState.getEntInstance(player.getEntityWorld()).width < 0.45F && player.isEntityInsideOpaqueBlock()) {
             event.setCanceled(true);
         }
-    }
-
-    @SubscribeEvent
-    public static void onPushPlayerSPOutOfBlock(PlayerSPPushOutOfBlocksEvent event) {
-        MorphInfo info = morphsActive.get(event.getEntityPlayer().getName());
-        if (info != null) //player is morphed
-        {
-            event.setCanceled(true);
-
-            PlayerMorphHandler.setPlayerSize(event.getEntityPlayer(), info, false);
-            AxisAlignedBB axisalignedbb = event.getEntityPlayer().getEntityBoundingBox();
-            event.setEntityBoundingBox(axisalignedbb);
-
-            float playerWidth = event.getEntityPlayer().width;
-            float playerHeight = event.getEntityPlayer().height;
-            event.getEntityPlayer().width = info.nextState.getEntInstance(event.getEntityPlayer().getEntityWorld()).width;
-            event.getEntityPlayer().height = info.nextState.getEntInstance(event.getEntityPlayer().getEntityWorld()).height;
-
-            pushOutOfBlocksSP(event.getEntityPlayer(), event.getEntityPlayer().posX - (double) event.getEntityPlayer().width * 0.35D, axisalignedbb.minY + 0.5D, event.getEntityPlayer().posZ + (double) event.getEntityPlayer().width * 0.35D);
-            pushOutOfBlocksSP(event.getEntityPlayer(), event.getEntityPlayer().posX - (double) event.getEntityPlayer().width * 0.35D, axisalignedbb.minY + 0.5D, event.getEntityPlayer().posZ - (double) event.getEntityPlayer().width * 0.35D);
-            pushOutOfBlocksSP(event.getEntityPlayer(), event.getEntityPlayer().posX + (double) event.getEntityPlayer().width * 0.35D, axisalignedbb.minY + 0.5D, event.getEntityPlayer().posZ - (double) event.getEntityPlayer().width * 0.35D);
-            pushOutOfBlocksSP(event.getEntityPlayer(), event.getEntityPlayer().posX + (double) event.getEntityPlayer().width * 0.35D, axisalignedbb.minY + 0.5D, event.getEntityPlayer().posZ + (double) event.getEntityPlayer().width * 0.35D);
-
-            event.getEntityPlayer().width = playerWidth;
-            event.getEntityPlayer().height = playerHeight;
-        }
-    }
-
-    public static boolean pushOutOfBlocksSP(EntityPlayer player, double x, double y, double z) {
-        if (!player.noClip) {
-            BlockPos blockpos = new BlockPos(x, y, z);
-            double d0 = x - (double) blockpos.getX();
-            double d1 = z - (double) blockpos.getZ();
-
-            int entHeight = Math.max((int) Math.ceil(player.height), 1);
-
-            boolean inTranslucentBlock = !isHeadspaceFree(player.getEntityWorld(), blockpos, entHeight);
-
-            if (inTranslucentBlock) {
-                int i = -1;
-                double d2 = 9999.0D;
-
-                if (isHeadspaceFree(player.getEntityWorld(), blockpos.west(), entHeight) && d0 < d2) {
-                    d2 = d0;
-                    i = 0;
-                }
-
-                if (isHeadspaceFree(player.getEntityWorld(), blockpos.east(), entHeight) && 1.0D - d0 < d2) {
-                    d2 = 1.0D - d0;
-                    i = 1;
-                }
-
-                if (isHeadspaceFree(player.getEntityWorld(), blockpos.north(), entHeight) && d1 < d2) {
-                    d2 = d1;
-                    i = 4;
-                }
-
-                if (isHeadspaceFree(player.getEntityWorld(), blockpos.south(), entHeight) && 1.0D - d1 < d2) {
-                    d2 = 1.0D - d1;
-                    i = 5;
-                }
-
-                float f = 0.1F;
-
-                if (i == 0) {
-                    player.motionX = -0.10000000149011612D;
-                }
-
-                if (i == 1) {
-                    player.motionX = 0.10000000149011612D;
-                }
-
-                if (i == 4) {
-                    player.motionZ = -0.10000000149011612D;
-                }
-
-                if (i == 5) {
-                    player.motionZ = 0.10000000149011612D;
-                }
-            }
-
-        }
-        return false;
-    }
-
-    private static boolean isHeadspaceFree(World world, BlockPos pos, int height) {
-        for (int y = 0; y < height; y++) {
-            if (!isOpenBlockSpace(world, pos.add(0, y, 0))) return false;
-        }
-        return true;
-    }
-
-    private static boolean isOpenBlockSpace(World world, BlockPos pos) {
-        IBlockState iblockstate = world.getBlockState(pos);
-        return !iblockstate.getBlock().isNormalCube(iblockstate, world, pos);
     }
 
     @SubscribeEvent
