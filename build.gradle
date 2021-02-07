@@ -15,8 +15,8 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 
 
 version = "${mod_version}"
-group = "com.tfar.modid" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "modid"
+group = "tfar" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "morphproxy"
 
 sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 compileJava {

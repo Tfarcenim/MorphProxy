@@ -2,14 +2,12 @@ package tfar.morphproxy.clien;
 
 import me.ichun.mods.ichunutil.client.keybind.KeyBind;
 import me.ichun.mods.ichunutil.client.keybind.KeyEvent;
-import me.ichun.mods.ichunutil.client.render.RendererHelper;
 import me.ichun.mods.ichunutil.common.core.util.EntityHelper;
 import me.ichun.mods.morph.api.ability.Ability;
 import me.ichun.mods.morph.client.morph.MorphInfoClient;
 import me.ichun.mods.morph.common.Morph;
 import me.ichun.mods.morph.common.morph.MorphInfo;
 import me.ichun.mods.morph.common.morph.MorphState;
-import me.ichun.mods.morph.common.packet.PacketGuiInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.client.gui.GuiScreen;
@@ -21,7 +19,6 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -32,6 +29,8 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import tfar.morphproxy.MorphProxy;
+import tfar.morphproxy.PacketHandler;
+import tfar.morphproxy.network.C2SSendMorphPacket;
 
 import java.util.*;
 
@@ -68,76 +67,78 @@ public class MorphProxyEventHandlerClient {
     @SubscribeEvent
     public static void onKeyEvent(KeyEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (event.keyBind.equals(MorphProxy.config.keySelectorUp1) || event.keyBind.equals(MorphProxy.config.keySelectorDown1) ||
-                event.keyBind.equals(MorphProxy.config.keySelectorLeft1) || event.keyBind.equals(MorphProxy.config.keySelectorRight1)) {
-            handleSelectorNavigation(event.keyBind);
-        } else if (event.keyBind.equals(Morph.config.keySelectorSelect) || (event.keyBind.keyIndex == mc.gameSettings.keyBindAttack.getKeyCode() && event.keyBind.isMinecraftBind())) {
-            if (selectorShow) {
-                selectorShow = false;
-                selectorShowTimer = MorphProxyEventHandlerClient.SELECTOR_SHOW_TIME - selectorShowTimer;
-                selectorScrollHoriTimer = MorphProxyEventHandlerClient.SELECTOR_SCROLL_TIME;
+        if (event.keyBind.isPressed()) {
+            if (event.keyBind.equals(MorphProxy.config.keySelectorUp1) || event.keyBind.equals(MorphProxy.config.keySelectorDown1) ||
+                    event.keyBind.equals(MorphProxy.config.keySelectorLeft1) || event.keyBind.equals(MorphProxy.config.keySelectorRight1)) {
+                handleSelectorNavigation(event.keyBind);
+            } else if (event.keyBind.equals(Morph.config.keySelectorSelect) || (event.keyBind.keyIndex == mc.gameSettings.keyBindAttack.getKeyCode() && event.keyBind.isMinecraftBind())) {
+                if (selectorShow) {
+                    selectorShow = false;
+                    selectorShowTimer = MorphProxyEventHandlerClient.SELECTOR_SHOW_TIME - selectorShowTimer;
+                    selectorScrollHoriTimer = MorphProxyEventHandlerClient.SELECTOR_SCROLL_TIME;
 
-                MorphState selectedState = getCurrentlySelectedMorphState();
-                MorphInfoClient info = morphsActive.get(mc.player.getName());
+                    MorphState selectedState = getCurrentlySelectedMorphState();
+                    MorphInfoClient info = morphsActive.get(mc.player.getName());
 
-                if (selectedState != null && (info != null && !info.nextState.currentVariant.equals(selectedState.currentVariant) || info == null && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName()))) {
-                    //todo
-                    Morph.channel.sendToServer(new PacketGuiInput(selectedState.currentVariant.thisVariant.identifier, 0, false));
-                }
-            } else if (showFavourites) {
-                showFavourites = false;
-                selectRadialMenu();
-            }
-        } else if (event.keyBind.equals(Morph.config.keySelectorCancel) || (event.keyBind.keyIndex == mc.gameSettings.keyBindUseItem.getKeyCode() && event.keyBind.isMinecraftBind())) {
-            if (selectorShow) {
-                if (mc.currentScreen instanceof GuiIngameMenu) {
-                    mc.displayGuiScreen(null);
-                }
-                selectorShow = false;
-                selectorShowTimer = MorphProxyEventHandlerClient.SELECTOR_SHOW_TIME - selectorShowTimer;
-                selectorScrollHoriTimer = MorphProxyEventHandlerClient.SELECTOR_SCROLL_TIME;
-            } else if (showFavourites) {
-                showFavourites = false;
-            }
-        } else if (event.keyBind.equals(Morph.config.keySelectorRemoveMorph) || event.keyBind.keyIndex == Keyboard.KEY_DELETE) {
-            if (selectorShow) {
-                MorphState selectedState = getCurrentlySelectedMorphState();
-                MorphInfoClient info = morphsActive.get(mc.player.getName());
-
-                if (selectedState != null && !selectedState.currentVariant.thisVariant.isFavourite && ((info == null || !info.nextState.currentVariant.thisVariant.identifier.equalsIgnoreCase(selectedState.currentVariant.thisVariant.identifier)) && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName()))) {
-                    //todo
-                    Morph.channel.sendToServer(new PacketGuiInput(selectedState.currentVariant.thisVariant.identifier, 2, false));
-                }
-            }
-        } else if (event.keyBind.equals(Morph.config.keyFavourite)) {
-            if (selectorShow) {
-                MorphState selectedState = getCurrentlySelectedMorphState();
-                if (selectedState != null && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName())) {
-                    selectedState.currentVariant.thisVariant.isFavourite = !selectedState.currentVariant.thisVariant.isFavourite;
-                    //todo
-                    Morph.channel.sendToServer(new PacketGuiInput(selectedState.currentVariant.thisVariant.identifier, 1, selectedState.currentVariant.thisVariant.isFavourite));
-                    MorphState playerState = favouriteStates.get(0);
-                    Morph.eventHandlerClient.favouriteStates.remove(0);
-                    if (selectedState.currentVariant.thisVariant.isFavourite) {
-                        if (!Morph.eventHandlerClient.favouriteStates.contains(selectedState)) {
-                            favouriteStates.add(selectedState);
-                            Collections.sort(favouriteStates);
-                        }
-                    } else {
-                        favouriteStates.remove(selectedState);
+                    if (selectedState != null && (info != null && !info.nextState.currentVariant.equals(selectedState.currentVariant) || info == null && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName()))) {
+                        //todo
+                        PacketHandler.INSTANCE.sendToServer(new C2SSendMorphPacket(selectedState.currentVariant.thisVariant.identifier, 0, false));
                     }
-                    favouriteStates.add(0, playerState);
+                } else if (showFavourites) {
+                    showFavourites = false;
+                    selectRadialMenu();
                 }
-            } else if (mc.currentScreen == null) {
-                showFavourites = true;
-                radialShowTimer = RADIAL_SHOW_TIME;
-                radialDeltaX = 0D;
-                radialDeltaY = 0D;
-                radialPlayerYaw = mc.player.rotationYaw;
-                radialPlayerPitch = mc.player.rotationPitch;
+            } else if (event.keyBind.equals(Morph.config.keySelectorCancel) || (event.keyBind.keyIndex == mc.gameSettings.keyBindUseItem.getKeyCode() && event.keyBind.isMinecraftBind())) {
+                if (selectorShow) {
+                    if (mc.currentScreen instanceof GuiIngameMenu) {
+                        mc.displayGuiScreen(null);
+                    }
+                    selectorShow = false;
+                    selectorShowTimer = MorphProxyEventHandlerClient.SELECTOR_SHOW_TIME - selectorShowTimer;
+                    selectorScrollHoriTimer = MorphProxyEventHandlerClient.SELECTOR_SCROLL_TIME;
+                } else if (showFavourites) {
+                    showFavourites = false;
+                }
+            } else if (event.keyBind.equals(Morph.config.keySelectorRemoveMorph) || event.keyBind.keyIndex == Keyboard.KEY_DELETE) {
+                if (selectorShow) {
+                    MorphState selectedState = getCurrentlySelectedMorphState();
+                    MorphInfoClient info = morphsActive.get(mc.player.getName());
+
+                    if (selectedState != null && !selectedState.currentVariant.thisVariant.isFavourite && ((info == null || !info.nextState.currentVariant.thisVariant.identifier.equalsIgnoreCase(selectedState.currentVariant.thisVariant.identifier)) && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName()))) {
+                        //todo
+                        PacketHandler.INSTANCE.sendToServer(new C2SSendMorphPacket(selectedState.currentVariant.thisVariant.identifier, 2, false));
+                    }
+                }
+            } else if (event.keyBind.equals(Morph.config.keyFavourite)) {
+                if (selectorShow) {
+                    MorphState selectedState = getCurrentlySelectedMorphState();
+                    if (selectedState != null && !selectedState.currentVariant.playerName.equalsIgnoreCase(mc.player.getName())) {
+                        selectedState.currentVariant.thisVariant.isFavourite = !selectedState.currentVariant.thisVariant.isFavourite;
+                        //todo
+                        PacketHandler.INSTANCE.sendToServer(new C2SSendMorphPacket(selectedState.currentVariant.thisVariant.identifier, 1, selectedState.currentVariant.thisVariant.isFavourite));
+                        MorphState playerState = favouriteStates.get(0);
+                        Morph.eventHandlerClient.favouriteStates.remove(0);
+                        if (selectedState.currentVariant.thisVariant.isFavourite) {
+                            if (!Morph.eventHandlerClient.favouriteStates.contains(selectedState)) {
+                                favouriteStates.add(selectedState);
+                                Collections.sort(favouriteStates);
+                            }
+                        } else {
+                            favouriteStates.remove(selectedState);
+                        }
+                        favouriteStates.add(0, playerState);
+                    }
+                } else if (mc.currentScreen == null) {
+                    showFavourites = true;
+                    radialShowTimer = RADIAL_SHOW_TIME;
+                    radialDeltaX = 0D;
+                    radialDeltaY = 0D;
+                    radialPlayerYaw = mc.player.rotationYaw;
+                    radialPlayerPitch = mc.player.rotationPitch;
+                }
             }
         }
-        if (event.keyBind.equals(Morph.config.keyFavourite) && showFavourites) {
+        else if (event.keyBind.equals(Morph.config.keyFavourite) && showFavourites) {
             //RADIAL MENU
             showFavourites = false;
             selectRadialMenu();
@@ -212,7 +213,7 @@ public class MorphProxyEventHandlerClient {
             } else {
                 ScaledResolution reso = new ScaledResolution(mc);
                 drawSelector(mc, reso, event.renderTickTime);
-                drawRadialMenu(mc, reso, event.renderTickTime);
+                // drawRadialMenu(mc, reso, event.renderTickTime);
 
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
                 for (Map.Entry<String, MorphInfoClient> e : morphsActive.entrySet()) {
@@ -299,7 +300,7 @@ public class MorphProxyEventHandlerClient {
 
                 if (selectedState != null && (info != null && !info.nextState.currentVariant.equals(selectedState.currentVariant) || info == null && !selectedState.currentVariant.playerName.equalsIgnoreCase(Minecraft.getMinecraft().player.getName()))) {
                     //todo
-                    Morph.channel.sendToServer(new PacketGuiInput(selectedState.currentVariant.thisVariant.identifier, 0, false));
+                    PacketHandler.INSTANCE.sendToServer(new C2SSendMorphPacket(selectedState.currentVariant.thisVariant.identifier, 0, false));
                     break;
                 }
             }
@@ -307,7 +308,9 @@ public class MorphProxyEventHandlerClient {
 
     }
 
-    public static void drawRadialMenu(Minecraft mc, ScaledResolution reso, float renderTick) {
+    //reimplement if radial selection is needed
+
+    /*public static void drawRadialMenu(Minecraft mc, ScaledResolution reso, float renderTick) {
         if ((radialShowTimer > 0 || showFavourites) && !mc.gameSettings.hideGUI) {
             double mag = Math.sqrt(radialDeltaX * radialDeltaX + radialDeltaY * radialDeltaY);
             double magAcceptance = 0.8D;
@@ -463,7 +466,7 @@ public class MorphProxyEventHandlerClient {
 
             GlStateManager.popMatrix();
         }
-    }
+    }*/
 
     public static void drawSelector(Minecraft mc, ScaledResolution reso, float renderTick) {
         if ((selectorShowTimer > 0 || selectorShow) && !mc.gameSettings.hideGUI) {
