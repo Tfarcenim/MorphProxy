@@ -5,44 +5,35 @@ import me.ichun.mods.ichunutil.client.keybind.KeyBind;
 import me.ichun.mods.ichunutil.client.keybind.KeyEvent;
 import me.ichun.mods.ichunutil.client.render.RendererHelper;
 import me.ichun.mods.ichunutil.common.core.util.EntityHelper;
-import me.ichun.mods.ichunutil.common.core.util.ResourceHelper;
 import me.ichun.mods.morph.api.ability.Ability;
-import me.ichun.mods.morph.api.ability.type.AbilityPotionEffect;
 import me.ichun.mods.morph.client.model.ModelHandler;
 import me.ichun.mods.morph.client.morph.MorphInfoClient;
 import me.ichun.mods.morph.client.render.RenderPlayerHand;
 import me.ichun.mods.morph.common.Morph;
-import me.ichun.mods.morph.common.handler.AbilityHandler;
 import me.ichun.mods.morph.common.morph.MorphInfo;
 import me.ichun.mods.morph.common.morph.MorphState;
 import me.ichun.mods.morph.common.packet.PacketGuiInput;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.boss.EntityDragon;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.potion.Potion;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.GameType;
-import net.minecraft.world.World;
 import net.minecraftforge.client.MinecraftForgeClient;
-import net.minecraftforge.client.event.*;
+import net.minecraftforge.client.event.MouseEvent;
+import net.minecraftforge.client.event.RenderBlockOverlayEvent;
+import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -58,10 +49,6 @@ import java.util.*;
 
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class MorphProxyEventHandlerClient {
-    public static final ResourceLocation rlFavourite = new ResourceLocation("morph", "textures/gui/fav.png");
-    public static final ResourceLocation rlSelected = new ResourceLocation("morph", "textures/gui/gui_selected.png");
-    public static final ResourceLocation rlUnselected = new ResourceLocation("morph", "textures/gui/gui_unselected.png");
-    public static final ResourceLocation rlUnselectedSide = new ResourceLocation("morph", "textures/gui/gui_unselected_side.png");
 
     public static final int SELECTOR_SHOW_TIME = 10;
     public static final int SELECTOR_SCROLL_TIME = 3;
@@ -664,7 +651,7 @@ public class MorphProxyEventHandlerClient {
 
                         GlStateManager.translate(newSlide && j == 0 ? 0.0D : ((selectorSelectedHori - selectorSelectedPrevHori) * 42F) * (1.0F - progressH), 0.0D, 0.0D);
 
-                        mc.getTextureManager().bindTexture(states.size() == 1 || j == states.size() - 1 ? rlUnselected : rlUnselectedSide);
+                        mc.getTextureManager().bindTexture(states.size() == 1 || j == states.size() - 1 ? Morph.eventHandlerClient.rlUnselected : Morph.eventHandlerClient.rlUnselectedSide);
 
                         double dist = size * (j - selectorSelectedHori);
 
@@ -678,7 +665,7 @@ public class MorphProxyEventHandlerClient {
                         GlStateManager.popMatrix();
                     }
                 } else {
-                    mc.getTextureManager().bindTexture(rlUnselected);
+                    mc.getTextureManager().bindTexture(Morph.eventHandlerClient.rlUnselected);
                     bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
                     bufferbuilder.pos(width1, height1 + size, -90.0D).tex(0.0D, 1.0D).endVertex();
                     bufferbuilder.pos(width1 + size, height1 + size, -90.0D).tex(1.0D, 1.0D).endVertex();
@@ -764,7 +751,7 @@ public class MorphProxyEventHandlerClient {
                 gap -= 36;
                 height1 = gap;
 
-                mc.getTextureManager().bindTexture(rlSelected);
+                mc.getTextureManager().bindTexture(Morph.eventHandlerClient.rlSelected);
                 Tessellator tessellator = Tessellator.getInstance();
                 BufferBuilder bufferbuilder = tessellator.getBuffer();
 
