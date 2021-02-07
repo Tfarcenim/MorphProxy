@@ -298,6 +298,7 @@ public class MorphProxyEventHandlerClient {
                 MorphInfoClient info = morphsActive.get(Minecraft.getMinecraft().player.getName());
 
                 if (selectedState != null && (info != null && !info.nextState.currentVariant.equals(selectedState.currentVariant) || info == null && !selectedState.currentVariant.playerName.equalsIgnoreCase(Minecraft.getMinecraft().player.getName()))) {
+                    //todo
                     Morph.channel.sendToServer(new PacketGuiInput(selectedState.currentVariant.thisVariant.identifier, 0, false));
                     break;
                 }
