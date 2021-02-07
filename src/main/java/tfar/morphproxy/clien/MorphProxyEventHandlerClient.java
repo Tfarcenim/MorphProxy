@@ -224,40 +224,6 @@ public class MorphProxyEventHandlerClient {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onRenderHand(RenderHandEvent event) {
-        if (Morph.config.handRenderOverride == 1) {
-            Minecraft mc = Minecraft.getMinecraft();
-            MorphInfoClient info = morphsActive.get(mc.player.getName());
-            if (info != null) {
-                String s = mc.player.getSkinType();
-                RenderPlayer rend = mc.getRenderManager().getSkinMap().get(s);
-
-                if (rend != null) //for some reason this is possible. I don't know why so I'll just null check it.
-                {
-                    event.setCanceled(true);
-
-                    renderHandInstance.renderTick = event.getPartialTicks();
-                    renderHandInstance.parent = rend;
-                    renderHandInstance.clientInfo = info;
-
-                    mc.getRenderManager().skinMap.put(s, renderHandInstance);
-
-                    boolean flag = mc.getRenderViewEntity() instanceof EntityLivingBase && ((EntityLivingBase) mc.getRenderViewEntity()).isPlayerSleeping();
-                    if (mc.gameSettings.thirdPersonView == 0 && !flag && !mc.gameSettings.hideGUI && !mc.playerController.isSpectator()) {
-                        mc.entityRenderer.enableLightmap();
-                        mc.getItemRenderer().renderItemInFirstPerson(event.getPartialTicks());
-                        mc.entityRenderer.disableLightmap();
-                    }
-
-                    mc.getRenderManager().skinMap.put(s, rend);
-
-                    renderHandInstance.clientInfo = null;
-                }
-            }
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onRenderSpecials(RenderLivingEvent.Specials.Pre<?> event) {
         if (allowSpecialRender) {
             return;
