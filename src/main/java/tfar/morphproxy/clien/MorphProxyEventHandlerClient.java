@@ -1,20 +1,16 @@
 package tfar.morphproxy.clien;
 
-import me.ichun.mods.ichunutil.client.core.event.RendererSafeCompatibilityEvent;
 import me.ichun.mods.ichunutil.client.keybind.KeyBind;
 import me.ichun.mods.ichunutil.client.keybind.KeyEvent;
 import me.ichun.mods.ichunutil.client.render.RendererHelper;
 import me.ichun.mods.ichunutil.common.core.util.EntityHelper;
 import me.ichun.mods.morph.api.ability.Ability;
-import me.ichun.mods.morph.client.model.ModelHandler;
 import me.ichun.mods.morph.client.morph.MorphInfoClient;
-import me.ichun.mods.morph.client.render.RenderPlayerHand;
 import me.ichun.mods.morph.common.Morph;
 import me.ichun.mods.morph.common.morph.MorphInfo;
 import me.ichun.mods.morph.common.morph.MorphState;
 import me.ichun.mods.morph.common.packet.PacketGuiInput;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
@@ -22,21 +18,13 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.entity.Render;
-import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.client.event.MouseEvent;
-import net.minecraftforge.client.event.RenderBlockOverlayEvent;
-import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -57,10 +45,6 @@ public class MorphProxyEventHandlerClient {
 
     public static HashMap<String, MorphInfoClient> morphsActive = new HashMap<>(); //Current morphs per-player
 
-    public static RenderPlayerHand renderHandInstance;
-    public static boolean allowSpecialRender;
-    public static boolean forcePlayerRender;
-
     public static int abilityScroll;
 
     public static boolean selectorShow = false;
@@ -80,18 +64,6 @@ public class MorphProxyEventHandlerClient {
     public static float radialPlayerPitch;
 
     public static ArrayList<MorphState> favouriteStates = new ArrayList<>();
-
-
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onRendererSafeCompatibility(RendererSafeCompatibilityEvent event) {
-        for (Map.Entry<Class<? extends Entity>, Render<? extends Entity>> e : Minecraft.getMinecraft().getRenderManager().entityRenderMap.entrySet()) {
-            Class clz = e.getKey();
-            if (EntityLivingBase.class.isAssignableFrom(clz)) {
-                ModelHandler.dissectForModels(clz, e.getValue());
-            }
-            ModelHandler.mapPlayerModels();
-        }
-    }
 
     @SubscribeEvent
     public static void onKeyEvent(KeyEvent event) {
